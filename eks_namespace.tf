@@ -8,8 +8,9 @@ provider "kubernetes" {
   token                  = data.aws_eks_cluster_auth.cluster.token
 }
 
-resource "kubernetes_namespace_v1" "prasath-ns" {
+/*resource "kubernetes_namespace_v1" "prasath-ns" {
   metadata {
     name = "prasath-ns"
   }
 }
+*/
