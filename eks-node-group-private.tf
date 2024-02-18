@@ -13,7 +13,7 @@ resource "aws_eks_node_group" "eks_ng_private" {
 
 
   remote_access {
-    #ec2_ssh_key = "eks-terraform-key"
+    ec2_ssh_key = "eks-terraform-key"
     source_security_group_ids = [aws_security_group.eks_ng_sg.id]
   }
 
