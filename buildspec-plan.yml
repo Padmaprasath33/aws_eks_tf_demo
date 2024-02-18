@@ -39,11 +39,11 @@ phases:
         fi
       - |
         if [ "$ACTION" = "apply" ]; then
-          terraform apply -input=false -auto-approve
+          terraform apply -input=false -lock=false -auto-approve
         fi
       - |
         if [ "$ACTION" = "destroy" ]; then
-          terraform destroy -input=false -auto-approve
+          terraform destroy -input=false -lock=false -auto-approve
         fi
   post_build:
     on-failure: CONTINUE   
