@@ -21,7 +21,6 @@ phases:
   build:
     on-failure: ABORT   
     commands:
-      - aws configure --profile Padma
       - export AWS_ACCESS_KEY_ID="AKIAQFM2TOB6GXUUAGW7"
       - export AWS_SECRET_ACCESS_KEY="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"
       - aws sts get-caller-identity
