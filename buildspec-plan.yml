@@ -3,8 +3,8 @@ version: 0.2
 env:
   variables:
     TERRAFORM_VERSION: "1.6.5"
-    ACTION: "plan"
-    #ACTION: "destroy"
+    #ACTION: "plan"
+    ACTION: "apply"
 phases:
   install:
     runtime-versions: 
