@@ -1,4 +1,4 @@
-/*data "aws_eks_cluster_auth" "cluster" {
+data "aws_eks_cluster_auth" "cluster" {
   name = aws_eks_cluster.eks_cluster.id
 }
 
@@ -9,8 +9,8 @@ provider "kubernetes" {
 }
 
 resource "kubernetes_namespace" "prasath-ns" {
+  depends_on = [ aws_eks_cluster.eks_cluster ]
   metadata {
     name = "prasath-ns"
   }
 }
-*/
