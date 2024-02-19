@@ -34,6 +34,8 @@ Networking:
 
 3. This module will also create a custom security groups for EKS managed node groups.
 
+4. Do create this module as a cluster creator user to not face any issues inbetween.
+
 
 # Terraform Structure
 
