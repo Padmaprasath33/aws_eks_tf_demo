@@ -34,6 +34,20 @@ Networking:
 
 3. This module will also create a custom security groups for EKS managed node groups.
 
+
+# Terraform Structure
+
+1. We can even create multiple child modules and we can call these child modules inside our root modules 
+    1. aws_network_module (VPC)
+    2. aws_eks_module (EKS cluster & Namespace)
+    3. aws_iam_module (IAM Roles & Policies)
+    4. aws_security_module (Security groups for node groups & clusters)
+
+2. But for this use case to keep it simpler I have gone with mono repo concept where I have created VPC, EKS cluster and security groups in same repo.
+
+3. Since this use case focuses only on creating and destroying cluster so I have gone with this approach and this serves the purpose.
+
+
 # Resources spec
 
 VPC:
