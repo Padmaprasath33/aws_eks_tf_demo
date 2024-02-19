@@ -9,6 +9,7 @@ provider "kubernetes" {
 }
 
 resource "kubernetes_namespace" "prasath-ns" {
+  depends_on = [ aws_eks_cluster.eks_cluster ]
   metadata {
     name = "prasath-ns"
   }
