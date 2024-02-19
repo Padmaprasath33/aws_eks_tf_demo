@@ -1,80 +1,101 @@
 # AWS EKS Terraform module
 
-Terraform module which creates AWS EKS (Kubernetes) resources
+Terraform module which creates AWS EKS (Kubernetes) cluster resource and namespace inside cluster.
+
+# Use Case
+
+General requirements:
+1. Deploy in US West 2
+2. Cluster name should be your last name
+3. Kubernetes version 1.27
+4. Create a unique cluster service role for the cluster
+5. Resources created should be tagged
+        OWNER:APPLICANT_LASTNAME_FIRSTINITIAL
+        CATEGORY:ENG_ASSESSMENT
+
+Other requirements:
+Node:
+1. Node group – max size 6, min size 3, desired size 4
+2. Nodes should be CPU Optimized
+3. Amazon EKS optimized AMI
+4. Auto Update
+Namespace:
+1. Should have at least one namespace - your last name
+Networking:
+1. Private with exception of this CIDR block - 196.182.32.48/32
+2. VPC should be read in from an output
 
 
-### External Documentation
+# Note
 
-Please note that we strive to provide a comprehensive suite of documentation for __*configuring and utilizing the module(s)*__ defined here, and that documentation regarding EKS (including EKS managed node group, self managed node group, and Fargate profile) and/or Kubernetes features, usage, etc. are better left up to their respective sources:
-- [AWS EKS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html)
-- [Kubernetes Documentation](https://kubernetes.io/docs/home/)
+1. This AWS EKS module will also create VPC, Subnets (Public & Private), NAT G/W by calling the VPC module from terraform registry.
 
-#### Reference Architecture
+2. This whole AWS EKS terraform module focuses on creating and deleting EKS cluster resources by using terraform.
 
-The examples provided under `examples/` provide a comprehensive suite of configurations that demonstrate nearly all of the possible different configurations and settings that can be used with this module. However, these examples are not representative of clusters that you would normally find in use for production workloads. For reference architectures that utilize this module, please see the following:
+3. This module will also create a custom security groups for EKS managed node groups.
 
-- [EKS Reference Architecture](https://github.com/clowdhaus/eks-reference-architecture)
+# Resources spec
 
-## Available Features
+VPC:
 
-- AWS EKS Cluster Addons
-- AWS EKS Identity Provider Configuration
-- [AWS EKS on Outposts support](https://aws.amazon.com/blogs/aws/deploy-your-amazon-eks-clusters-locally-on-aws-outposts/)
-- All [node types](https://docs.aws.amazon.com/eks/latest/userguide/eks-compute.html) are supported:
-  - [EKS Managed Node Group](https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html)
-  - [Self Managed Node Group](https://docs.aws.amazon.com/eks/latest/userguide/worker.html)
-  - [Fargate Profile](https://docs.aws.amazon.com/eks/latest/userguide/fargate.html)
-- Support for creating Karpenter related AWS infrastructure resources (e.g. IAM roles, SQS queue, EventBridge rules, etc.)
-- Support for custom AMI, custom launch template, and custom user data including custom user data template
-- Support for Amazon Linux 2 EKS Optimized AMI and Bottlerocket nodes
-  - Windows based node support is limited to a default user data template that is provided due to the lack of Windows support and manual steps required to provision Windows based EKS nodes
-- Support for module created security group, bring your own security groups, as well as adding additional security group rules to the module created security group(s)
-- Support for creating node groups/profiles separate from the cluster through the use of sub-modules (same as what is used by root module)
-- Support for node group/profile "default" settings - useful for when creating multiple node groups/Fargate profiles where you want to set a common set of configurations once, and then individually control only select features on certain node groups/profiles
+1. For creating VPC resource, I have used a module from Terraform registry.
+	source  = "terraform-aws-modules/vpc/aws"
+	version = "5.4.0“
+2. Name of the VPC: “Prasath”
+3. VPC CIDR block: "10.0.0.0/16“
+4. I have created 2 subnets
+	1. Public Subnet
+	2. Private Subnet
+5. Public Subnet CIDR range: ["10.0.101.0/24", "10.0.102.0/24"]
+6. Private Subnet CIDR rage: ["10.0.1.0/24", "10.0.2.0/24"]
+7. I have used locals block to reuse the tags across multiple AWS resources
+	Tags: OWNER: Prasath_S
+	      CATEGORY: ENG_ASSESSMENT
+8. Region: us-west-2
+9. Availability Zone: Used datasource to pick the available AZ’s in that region
+10. Outputs:
+	1. VPC_ID
+	2. VPC_CIDR block
 
-### [IRSA Terraform Module](https://github.com/terraform-aws-modules/terraform-aws-iam/tree/master/modules/iam-role-for-service-accounts-eks)
+EKS:
 
-An IAM role for service accounts (IRSA) sub-module has been created to make deploying common addons/controllers easier. Instead of users having to create a custom IAM role with the necessary federated role assumption required for IRSA plus find and craft the associated policy required for the addon/controller, users can create the IRSA role and policy with a few lines of code. See the [`terraform-aws-iam/examples/iam-role-for-service-accounts`](https://github.com/terraform-aws-modules/terraform-aws-iam/blob/master/examples/iam-role-for-service-accounts-eks/main.tf) directory for examples on how to use the IRSA sub-module in conjunction with this (`terraform-aws-eks`) module.
+EKS cluster has been created using the resource block.
+EKS Cluster name: “Prasath”
+EKS Cluster role: “Prasath_S-dev-eks-master-role”
+IAM Policy attached with cluster role: 
+1. AmazonEKSClusterPolicy
+2. AmazonEKSVPCResourceController
+EKS Node Group:
+	1. Public Node Group
+	2. Private Node Group
+6. Node Specs:
+	1. CPU Optimized nodes: “C5.Xlarge”
+	2. EKS optimized AMI: “AL2_x86_64”
+	3. Min: 3
+	4. Max: 6
+	5. Desired: 4
+7. Node Group names:
+	1. Prasath_S-eks-ng-private
+	2. Prasath_S-eks-ng-Public
+8. Node Group Role: “Prasath_S-eks-nodegroup-role”
+9. IAM policy attached with node group role:
+	1. AmazonEKSWorkerNodePolicy
+	2. AmazonEKS_CNI_Policy
+	3. AmazonEC2ContainerRegistryReadOnly
+10. Namespace: 
+	1. In order to create a namespace in EKS cluster we need to have Kubernetes provider.
+11. Namespace name: “Prasath-ns”
+12. Security Groups:
+    1. name: "prasath-eks-ng-sg"
+    2. Ingress: 
+        from_port: 0
+        to_port: 65535
+        cidr_block: "196.182.32.48/32"
+    3. Egress:
+        from_port: 0
+        to_port: 0
+        cidr_block: "0.0.0.0/0"
 
-Some of the addon/controller policies that are currently supported include:
-
-- [Cert-Manager](https://cert-manager.io/docs/configuration/acme/dns01/route53/#set-up-an-iam-role)
-- [Cluster Autoscaler](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/aws/README.md)
-- [EBS CSI Driver](https://github.com/kubernetes-sigs/aws-ebs-csi-driver/blob/master/docs/example-iam-policy.json)
-- [EFS CSI Driver](https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/docs/iam-policy-example.json)
-- [External DNS](https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/aws.md#iam-policy)
-- [External Secrets](https://github.com/external-secrets/kubernetes-external-secrets#add-a-secret)
-- [FSx for Lustre CSI Driver](https://github.com/kubernetes-sigs/aws-fsx-csi-driver/blob/master/docs/README.md)
-- [Karpenter](https://github.com/aws/karpenter/blob/main/website/content/en/preview/getting-started/cloudformation.yaml)
-- [Load Balancer Controller](https://github.com/kubernetes-sigs/aws-load-balancer-controller/blob/main/docs/install/iam_policy.json)
-  - [Load Balancer Controller Target Group Binding Only](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/deploy/installation/#iam-permission-subset-for-those-who-use-targetgroupbinding-only-and-dont-plan-to-use-the-aws-load-balancer-controller-to-manage-security-group-rules)
-- [App Mesh Controller](https://github.com/aws/aws-app-mesh-controller-for-k8s/blob/master/config/iam/controller-iam-policy.json)
-  - [App Mesh Envoy Proxy](https://raw.githubusercontent.com/aws/aws-app-mesh-controller-for-k8s/master/config/iam/envoy-iam-policy.json)
-- [Managed Service for Prometheus](https://docs.aws.amazon.com/prometheus/latest/userguide/set-up-irsa.html)
-- [Node Termination Handler](https://github.com/aws/aws-node-termination-handler#5-create-an-iam-role-for-the-pods)
-- [Velero](https://github.com/vmware-tanzu/velero-plugin-for-aws#option-1-set-permissions-with-an-iam-user)
-- [VPC CNI](https://docs.aws.amazon.com/eks/latest/userguide/cni-iam-role.html)
-
-See [terraform-aws-iam/modules/iam-role-for-service-accounts](https://github.com/terraform-aws-modules/terraform-aws-iam/tree/master/modules/iam-role-for-service-accounts-eks) for current list of supported addon/controller policies as more are added to the project.
-
-
-
-## Examples
-
-- [Complete](https://github.com/terraform-aws-modules/terraform-aws-eks/tree/master/examples/complete): EKS Cluster using all available node group types in various combinations demonstrating many of the supported features and configurations
-- [EKS Managed Node Group](https://github.com/terraform-aws-modules/terraform-aws-eks/tree/master/examples/eks_managed_node_group): EKS Cluster using EKS managed node groups
-- [Fargate Profile](https://github.com/terraform-aws-modules/terraform-aws-eks/tree/master/examples/fargate_profile): EKS cluster using [Fargate Profiles](https://docs.aws.amazon.com/eks/latest/userguide/fargate.html)
-- [Karpenter](https://github.com/terraform-aws-modules/terraform-aws-eks/tree/master/examples/karpenter): EKS Cluster with [Karpenter](https://karpenter.sh/) provisioned for intelligent data plane management
-- [Outposts](https://github.com/terraform-aws-modules/terraform-aws-eks/tree/master/examples/outposts): EKS local cluster provisioned on [AWS Outposts](https://docs.aws.amazon.com/eks/latest/userguide/eks-outposts.html)
-- [Self Managed Node Group](https://github.com/terraform-aws-modules/terraform-aws-eks/tree/master/examples/self_managed_node_group): EKS Cluster using self-managed node groups
-- [User Data](https://github.com/terraform-aws-modules/terraform-aws-eks/tree/master/examples/user_data): Various supported methods of providing necessary bootstrap scripts and configuration settings via user data
-
-## Contributing
-
-We are grateful to the community for contributing bugfixes and improvements! Please see below to learn how you can take part.
-
-- [Code of Conduct](https://github.com/terraform-aws-modules/.github/blob/master/CODE_OF_CONDUCT.md)
-- [Contributing Guide](https://github.com/terraform-aws-modules/.github/blob/master/CONTRIBUTING.md)
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Requirements
